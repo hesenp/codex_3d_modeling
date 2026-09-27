@@ -24,5 +24,8 @@ def export_model(model: cq.Workplane | cq.Shape, directory: Path, name: str) -> 
         cq.exporters.export(
             shape, str(path), tolerance=LINEAR_TOLERANCE_MM,
             angularTolerance=ANGULAR_TOLERANCE_RAD, unit="MM",
+            # OCCT's surface pcurves can invalidate smooth fillet STEP round
+            # trips. Retain exact 3D geometry and let importers rebuild pcurves.
+            opt={"write_pcurves": False} if path.suffix == ".step" else {},
         )
     return paths

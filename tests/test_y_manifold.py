@@ -1,4 +1,4 @@
-"""Verify mating sizes, a 90° inlet curving to 45°, open bores, and exports."""
+"""Verify mating sizes, a straight 45° branch, printer fit, open bores, and exports."""
 
 import importlib.util
 import math
@@ -50,21 +50,19 @@ def test_fit_diameters_and_wall(shape, model):
 
 
 def test_layout_and_unblocked_passages(shape, model):
-    assert math.degrees(math.acos(model.BRANCH_ROOT_AXIS.dot(model.Z_AXIS))) == pytest.approx(45)
-    assert math.degrees(math.acos(model.INLET_2_AXIS.dot(model.Z_AXIS))) == pytest.approx(90)
+    assert math.degrees(math.acos(model.INLET_2_AXIS.dot(model.Z_AXIS))) == pytest.approx(45)
     bounds = shape.BoundingBox()
     assert bounds.zmin == pytest.approx(0, abs=1e-6)
-    assert bounds.zmax == pytest.approx(255.8, abs=1e-6)
+    assert bounds.zmax == pytest.approx(240.0, abs=1e-6)
     assert model.JUNCTION.z - bounds.zmin == pytest.approx(90.0, abs=1e-6)
-    assert bounds.zmax - model.JUNCTION.z == pytest.approx(115.0 + 50.8, abs=1e-6)
+    assert bounds.zmax - model.JUNCTION.z == pytest.approx(150.0, abs=1e-6)
     assert bounds.ylen == pytest.approx(63.65, abs=1e-6)
     solid = shape.Solids()[0]
     # Probe each full bore with an independent cylinder to catch leftover septa.
     probes = [
         cq.Solid.makeCylinder(25.2, model.MAIN_LENGTH_MM + 2, (0, 0, -1)),
-        cq.Solid.makeCylinder(25.2, model.BRANCH_ROOT_LENGTH_MM,
-                             model.JUNCTION, model.BRANCH_ROOT_AXIS),
-        cq.Solid.makeCylinder(25.2, 37, model.BEND_END, model.INLET_2_AXIS),
+        cq.Solid.makeCylinder(25.2, model.BRANCH_LENGTH_MM + 1,
+                             model.JUNCTION, model.INLET_2_AXIS),
         cq.Solid.makeCylinder(28.7, 34, (0, 0, 1)),
     ]
     for probe in probes:
@@ -72,9 +70,12 @@ def test_layout_and_unblocked_passages(shape, model):
     passage = model.flow_passage()
     assert passage.isValid() and len(passage.Solids()) == 1
     # Model contains exactly the exterior minus the connected passage.
-    assert shape.Volume() == pytest.approx(
-        model.outer_envelope().Volume()
-        - model.outer_envelope().intersect(passage).Volume(), rel=1e-7
+    exterior = model.outer_envelope()
+    # Smooth spline/fillet surfaces require tighter integration than the
+    # default to compare the difference of two much larger volumes.
+    assert shape.Volume(tol=1e-9) == pytest.approx(
+        exterior.Volume(tol=1e-9)
+        - exterior.intersect(passage).Volume(tol=1e-9), rel=1e-7
     )
     # Material remains in all straight connection cuffs, for the full 35 mm.
     for distance in (1, 17.5, 34.9):
@@ -96,28 +97,15 @@ def test_lead_ins(shape, model):
         assert solid.isInside(point) == inside
 
 
-def test_bend_geometry_and_clearance(shape, model):
-    path = model.branch_path()
-    arcs = [edge for edge in path.Edges() if edge.geomType() == "CIRCLE"]
-    assert len(arcs) == 1
-    arc = arcs[0]
-    assert arc.radius() == pytest.approx(65)
-    assert arc.Length() / arc.radius() == pytest.approx(math.pi / 4)
-    assert arc.tangentAt(0).dot(model.BRANCH_ROOT_AXIS) == pytest.approx(1)
-    assert arc.tangentAt(1).dot(model.INLET_2_AXIS) == pytest.approx(1)
-
-    # Inspect normal sections through the actual solid at several bend angles.
-    # Full-bore spheres independently check for plugs inside the curved passage.
-    for angle in (50, 60, 75, 85):
-        center = model.bend_point(angle)
-        normal = cq.Vector(math.sin(math.radians(angle)), 0, math.cos(math.radians(angle)))
-        section = cq.Workplane(cq.Plane(origin=center, normal=normal)).newObject([shape]).section()
-        diameters = sorted(2 * edge.radius() for edge in section.edges().vals()
-                           if edge.geomType() == "CIRCLE"
-                           and (edge.arcCenter() - center).Length < 1e-5)
-        assert diameters == pytest.approx([50.65, 56.65], abs=1e-5)
-        probe = cq.Solid.makeSphere(25.2, center, angleDegrees1=-90, angleDegrees2=90)
-        assert shape.intersect(probe).Volume() == pytest.approx(0, abs=1e-6)
+def test_p1s_build_envelope(shape):
+    # Conservative design target inside the advertised 256 mm cube, leaving
+    # room around the centered model and 16 mm below nominal maximum height.
+    info = inspect_shape(shape)
+    assert info["size_mm"] == pytest.approx([132.640749, 63.65, 240], abs=1e-5)
+    assert info["min_mm"][2] == pytest.approx(0, abs=1e-6)
+    assert info["size_mm"][0] + 20 < 256  # 10 mm allowance each side
+    assert info["size_mm"][1] + 20 < 256
+    assert info["size_mm"][2] <= 240.0 + 1e-6
 
 
 def test_manifold_exports(shape, tmp_path):
@@ -126,7 +114,7 @@ def test_manifold_exports(shape, tmp_path):
     for path in export_model(shape, tmp_path, "y-manifold"):
         if path.suffix == ".step":
             restored = require_solid(cq.importers.importStep(str(path)))
-            assert restored.Volume() == pytest.approx(shape.Volume(), rel=1e-6)
+            assert restored.Volume(tol=1e-9) == pytest.approx(shape.Volume(tol=1e-9), rel=1e-6)
             continue
         mesh = trimesh.load(str(path), force="mesh")
         assert mesh.is_watertight and mesh.is_winding_consistent
@@ -141,3 +129,43 @@ def test_manifold_exports(shape, tmp_path):
     after = inspect_shape(shape)
     for key in ("size_mm", "min_mm", "max_mm"):
         assert after[key] == pytest.approx(before[key], abs=1e-6)
+
+
+def test_smooth_reinforcement_preserves_connections_and_bores(shape, model):
+    plain = model.outer_envelope(reinforced=False).cut(model.flow_passage()).clean()
+    added = shape.cut(plain)
+    assert added.Volume() > 1000  # Real additional material, not cosmetic lines.
+    assert plain.cut(shape).Volume() == pytest.approx(0, abs=1e-6)
+    assert added.intersect(model.flow_passage()).Volume() == pytest.approx(0, abs=1e-6)
+    # Both male fittings remain clear over their full mating length, including
+    # space immediately outside the nominal OD; the female socket is untouched.
+    for origin, axis in [
+        (cq.Vector(0, 0, model.MAIN_LENGTH_MM - 35.75), model.Z_AXIS),
+        (model.INLET_2_MOUTH - model.INLET_2_AXIS * 35.75, model.INLET_2_AXIS),
+        (cq.Vector(0, 0, 0), model.Z_AXIS),
+    ]:
+        clearance = cq.Solid.makeCylinder(33, 35.75, origin, axis)
+        assert added.intersect(clearance).Volume() == pytest.approx(0, abs=1e-6)
+    # Distributed body thickening replaces projecting ribs and gussets.
+    solid = shape.Solids()[0]
+    for point in [(-29.5, 0, 110), (0, 29.5, 110), (0, -29.5, 110)]:
+        assert solid.isInside(point)
+        assert not plain.Solids()[0].isInside(point)
+
+
+
+def test_upright_support_free_overhangs(shape, tmp_path):
+    """No ledges/ceilings steeper than 45° from vertical above the build plate.
+
+    A 0.5° allowance accounts for curved-surface tessellation, not intended
+    unsupported horizontal faces. The only horizontal underside is at Z=0.
+    This is a geometry criterion, not a guarantee for every filament/profile.
+    """
+    path = tmp_path / "overhang-audit.stl"
+    assert shape.exportStl(str(path), tolerance=0.002, angularTolerance=0.05, relative=False)
+    mesh = trimesh.load(path, force="mesh")
+    on_plate = mesh.triangles[:, :, 2].max(axis=1) < 1e-5
+    assert mesh.area_faces[on_plate].sum() > 400
+    assert mesh.triangles[:, :, 2].min() >= -1e-5
+    lower_normal_limit = -math.sin(math.radians(45.5))
+    assert mesh.face_normals[~on_plate, 2].min() >= lower_normal_limit

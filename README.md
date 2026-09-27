@@ -21,7 +21,7 @@ configuration; pip and requirements.txt manage the environment.
 .agents/skills/cadquery-helper/   Repository-local Codex skill
 projects/01-solid-block/model.py    10 × 20 × 30 mm solid
 projects/02-container/model.py      100 mm open-top container
-projects/03-y-manifold/model.py     Curved dust-collection Y-manifold
+projects/03-y-manifold/model.py     Smooth 45° dust-collection Y-manifold
 projects/*/output/               Generated STL, 3MF, STEP, PNG, and JSON
 src/cadquery_helper/             Shared export, inspection, and rendering code
 scripts/                        Build and rendering entry points
@@ -34,7 +34,7 @@ tests/                          Geometry and exported-file validation
 | --- | --- | --- |
 | [Solid block](projects/01-solid-block/model.py) | 1 × 2 × 3 cm = 10 × 20 × 30 mm; 6,000 mm³ | [STL](projects/01-solid-block/output/01-solid-block.stl), [3MF](projects/01-solid-block/output/01-solid-block.3mf), [preview](projects/01-solid-block/output/preview.png) |
 | [Container](projects/02-container/model.py) | 10 × 10 × 10 cm outside; open top; 1 mm walls/base; 0.5 mm exterior chamfers | [STL](projects/02-container/output/02-container.stl), [3MF](projects/02-container/output/02-container.3mf), [preview](projects/02-container/output/preview.png) |
-| [Y-manifold](projects/03-y-manifold/README.md) | Two 56.65 mm OD male inlets; 57.65 mm ID female outlet; 90° side inlet curving to a 45° junction; 3 mm walls | [STL](projects/03-y-manifold/output/03-y-manifold.stl), [3MF](projects/03-y-manifold/output/03-y-manifold.3mf), [preview](projects/03-y-manifold/output/preview.png) |
+| [Y-manifold](projects/03-y-manifold/README.md) | Two 56.65 mm OD male inlets; 57.65 mm ID female outlet; straight 45° side inlet; smooth reinforced body; designed for upright support-free printing; 240 mm total height | [STL](projects/03-y-manifold/output/03-y-manifold.stl), [3MF](projects/03-y-manifold/output/03-y-manifold.3mf), [preview](projects/03-y-manifold/output/preview.png) |
 
 The container dimensions and chamfer size were confirmed during setup. The
 cavity is 98 × 98 × 99 mm. Walls and base are 1 mm on their flat regions;

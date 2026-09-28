@@ -2,24 +2,24 @@
 
 Input 1 and the outlet are coaxial. Input 2 is a straight tube at **45°** to
 input 1, joining toward the outlet. The manifold uses the user-confirmed
-**0.5 mm clearance on diameter**, not per side; nominal 2¼ inches is 57.15 mm.
+**1 mm clearance on diameter**, not per side; nominal 2¼ inches is 57.15 mm.
 
 | Port | Connection | Mating dimension | Bore | Straight engagement |
 | --- | --- | --- | --- | --- |
-| Input 1, upper end | Male, to saw-base connection | **56.65 mm OD** | 50.65 mm | 35 mm |
-| Input 2, 45° branch | Male, to guard dust-collection connection | **56.65 mm OD** | 50.65 mm | 35 mm |
-| Outlet, lower end | Female, to shop-vac connection | **57.65 mm ID** | 57.65 mm | 35 mm |
+| Input 1, upper end | Male, to saw-base connection | **56.15 mm OD** | 50.15 mm | 35 mm |
+| Input 2, 45° branch | Male, to guard dust-collection connection | **56.15 mm OD** | 50.15 mm | 35 mm |
+| Outlet, lower end | Female, to shop-vac connection | **58.15 mm ID** | 58.15 mm | 35 mm |
 
 ## Dimensions and printer fit
 
-- Overall bounds: approximately **132.64 × 63.65 × 240 mm** (X × Y × Z).
+- Overall bounds: approximately **132.71 × 64.15 × 240 mm** (X × Y × Z).
 - Input 1 mouth to Y centerline junction: **150 mm**, shortened by **15.8 mm**.
 - Outlet mouth to Y centerline junction: **90 mm**.
 - Input 2 centerline junction-to-mouth length: **115 mm**, with no bend.
 - Input 2 mouth center: **X = 81.32 mm, Y = 0, Z = 171.32 mm**.
-- Connection wall thickness: **3 mm**, giving an outlet OD of 63.65 mm.
-  Smooth reinforcement increases the main-body wall to **4.675 mm** and the
-  branch-body wall to **4.175 mm**, tapering back to the connection dimensions.
+- Connection wall thickness: **3 mm**, giving an outlet OD of 64.15 mm.
+  Smooth reinforcement increases the main-body wall to **4.925 mm** and the
+  branch-body wall to **4.425 mm**, tapering back to the connection dimensions.
 - Each port has at least 35 mm of unobstructed cylindrical mating surface plus
   a **0.75 mm × 45° insertion bevel**, which reduces thickness locally.
 - Outlet socket length including bevel: **35.75 mm**, followed by a **20 mm

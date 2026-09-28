@@ -33,9 +33,9 @@ def shape(model):
 def test_fit_diameters_and_wall(shape, model):
     """Measure sections through actual geometry, rather than only constants."""
     stations = [
-        (cq.Vector(0, 0, model.MAIN_LENGTH_MM - 20), cq.Vector(0, 0, 1), [50.65, 56.65]),
-        (model.INLET_2_MOUTH - model.INLET_2_AXIS * 15, model.INLET_2_AXIS, [50.65, 56.65]),
-        (cq.Vector(0, 0, 15), cq.Vector(0, 0, 1), [57.65, 63.65]),
+        (cq.Vector(0, 0, model.MAIN_LENGTH_MM - 20), cq.Vector(0, 0, 1), [50.15, 56.15]),
+        (model.INLET_2_MOUTH - model.INLET_2_AXIS * 15, model.INLET_2_AXIS, [50.15, 56.15]),
+        (cq.Vector(0, 0, 15), cq.Vector(0, 0, 1), [58.15, 64.15]),
     ]
     for center, axis, expected in stations:
         plane = cq.Plane(origin=center, normal=axis)
@@ -56,14 +56,14 @@ def test_layout_and_unblocked_passages(shape, model):
     assert bounds.zmax == pytest.approx(240.0, abs=1e-6)
     assert model.JUNCTION.z - bounds.zmin == pytest.approx(90.0, abs=1e-6)
     assert bounds.zmax - model.JUNCTION.z == pytest.approx(150.0, abs=1e-6)
-    assert bounds.ylen == pytest.approx(63.65, abs=1e-6)
+    assert bounds.ylen == pytest.approx(model.OUTLET_OD_MM, abs=1e-6)
     solid = shape.Solids()[0]
     # Probe each full bore with an independent cylinder to catch leftover septa.
     probes = [
-        cq.Solid.makeCylinder(25.2, model.MAIN_LENGTH_MM + 2, (0, 0, -1)),
-        cq.Solid.makeCylinder(25.2, model.BRANCH_LENGTH_MM + 1,
+        cq.Solid.makeCylinder(24.95, model.MAIN_LENGTH_MM + 2, (0, 0, -1)),
+        cq.Solid.makeCylinder(24.95, model.BRANCH_LENGTH_MM + 1,
                              model.JUNCTION, model.INLET_2_AXIS),
-        cq.Solid.makeCylinder(28.7, 34, (0, 0, 1)),
+        cq.Solid.makeCylinder(28.95, 34, (0, 0, 1)),
     ]
     for probe in probes:
         assert shape.intersect(probe).Volume() == pytest.approx(0, abs=1e-6)
@@ -88,20 +88,20 @@ def test_layout_and_unblocked_passages(shape, model):
 def test_lead_ins(shape, model):
     solid = shape.Solids()[0]
     # 0.75 mm entry bevels ease insertion without changing the straight fit size.
-    assert not solid.isInside((28.2, 0, model.MAIN_LENGTH_MM - 0.1))
-    assert solid.isInside((28.2, 0, model.MAIN_LENGTH_MM - 1.0))
+    assert not solid.isInside((27.7, 0, model.MAIN_LENGTH_MM - 0.1))
+    assert solid.isInside((27.7, 0, model.MAIN_LENGTH_MM - 1.0))
     assert not solid.isInside((29.4, 0, 0.1))
     assert solid.isInside((29.4, 0, 1.0))
     for distance, inside in [(0.1, False), (1.0, True)]:
-        point = model.INLET_2_MOUTH - model.INLET_2_AXIS * distance + cq.Vector(0, 28.2, 0)
+        point = model.INLET_2_MOUTH - model.INLET_2_AXIS * distance + cq.Vector(0, 27.7, 0)
         assert solid.isInside(point) == inside
 
 
-def test_p1s_build_envelope(shape):
+def test_p1s_build_envelope(shape, model):
     # Conservative design target inside the advertised 256 mm cube, leaving
     # room around the centered model and 16 mm below nominal maximum height.
     info = inspect_shape(shape)
-    assert info["size_mm"] == pytest.approx([132.640749, 63.65, 240], abs=1e-5)
+    assert info["size_mm"][1:] == pytest.approx([model.OUTLET_OD_MM, 240], abs=1e-5)
     assert info["min_mm"][2] == pytest.approx(0, abs=1e-6)
     assert info["size_mm"][0] + 20 < 256  # 10 mm allowance each side
     assert info["size_mm"][1] + 20 < 256

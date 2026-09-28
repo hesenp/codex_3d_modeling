@@ -5,7 +5,7 @@ import math
 import cadquery as cq
 
 NOMINAL_DIAMETER_MM = 2.25 * 25.4  # 57.15 mm
-DIAMETRAL_CLEARANCE_MM = 0.5      # Confirmed: on diameter, not each side.
+DIAMETRAL_CLEARANCE_MM = 1.0      # Confirmed: on diameter, not each side.
 INLET_OD_MM = NOMINAL_DIAMETER_MM - DIAMETRAL_CLEARANCE_MM
 OUTLET_ID_MM = NOMINAL_DIAMETER_MM + DIAMETRAL_CLEARANCE_MM
 WALL_MM = 3.0
